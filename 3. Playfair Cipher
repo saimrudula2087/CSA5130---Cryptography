@@ -1,0 +1,98 @@
+#include <stdio.h>
+#include <string.h>
+#include <ctype.h>
+
+char matrix[5][5];
+
+void createMatrix(char *key) {
+    int used[26] = {0}, i, j, k = 0;
+    used['j' - 'a'] = 1; 
+
+    for (i = 0; key[i]; i++) {
+        char ch = tolower(key[i]);
+        if (isalpha(ch)) {
+            if (ch == 'j') ch = 'i';
+            if (!used[ch - 'a']) {
+                matrix[k / 5][k % 5] = ch;
+                used[ch - 'a'] = 1;
+                k++;
+            }
+        }
+    }
+
+    for (char ch = 'a'; ch <= 'z'; ch++) {
+        if (!used[ch - 'a']) {
+            matrix[k / 5][k % 5] = ch;
+            used[ch - 'a'] = 1;
+            k++;
+        }
+    }
+}
+
+void findPosition(char ch, int *row, int *col) {
+    if (ch == 'j') ch = 'i';
+    for (int i = 0; i < 5; i++)
+        for (int j = 0; j < 5; j++)
+            if (matrix[i][j] == ch) {
+                *row = i;
+                *col = j;
+                return;
+            }
+}
+
+void preprocessInput(char *input, char *processed) {
+    int len = 0;
+    for (int i = 0; input[i]; i++) {
+        if (isalpha(input[i])) {
+            processed[len++] = tolower(input[i] == 'j' ? 'i' : input[i]);
+        }
+    }
+    processed[len] = '\0';
+
+    for (int i = 0; i < len; i += 2) {
+        if (processed[i] == processed[i + 1]) {
+            memmove(processed + i + 1, processed + i, len - i + 1);
+            processed[i + 1] = 'x';
+            len++;
+        }
+    }
+    if (len % 2 != 0)
+        processed[len++] = 'x';
+    processed[len] = '\0';
+}
+
+void encryptPlayfair(char *plaintext, char *ciphertext) {
+    int r1, c1, r2, c2, k = 0;
+
+    for (int i = 0; i < strlen(plaintext); i += 2) {
+        findPosition(plaintext[i], &r1, &c1);
+        findPosition(plaintext[i + 1], &r2, &c2);
+
+        if (r1 == r2) {
+            ciphertext[k++] = matrix[r1][(c1 + 1) % 5];
+            ciphertext[k++] = matrix[r2][(c2 + 1) % 5];
+        } else if (c1 == c2) {
+            ciphertext[k++] = matrix[(r1 + 1) % 5][c1];
+            ciphertext[k++] = matrix[(r2 + 1) % 5][c2];
+        } else {
+            ciphertext[k++] = matrix[r1][c2];
+            ciphertext[k++] = matrix[r2][c1];
+        }
+    }
+    ciphertext[k] = '\0';
+}
+
+int main() {
+    char key[100], input[100], plaintext[200], ciphertext[200];
+    printf("Enter keyword: ");
+    gets(key);
+    printf("Enter plaintext: ");
+    gets(input);
+
+    createMatrix(key);
+    preprocessInput(input, plaintext);
+    encryptPlayfair(plaintext, ciphertext);
+
+    printf("Encrypted Text: %s\n", ciphertext);
+    return 0;
+}
