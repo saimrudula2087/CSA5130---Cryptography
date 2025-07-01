@@ -1,0 +1,13 @@
+import math
+
+# Total unique letters (A-Z without J)
+n = 25
+
+# Compute 25!
+total_keys = math.factorial(n)
+
+# Convert to power of 2: log2(25!)
+power_of_two = math.log2(total_keys)
+
+print(f"Total possible Playfair keys: {total_keys:.2e}")
+print(f"Approximate power of 2: 2^{power_of_two:.2f}")
