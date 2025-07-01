@@ -1,0 +1,16 @@
+# PC-1: Permuted Choice 1 (from 64 to 56 bits)
+PC1 = [
+    57, 49, 41, 33, 25, 17, 9,
+    1, 58, 50, 42, 34, 26, 18,
+    10, 2, 59, 51, 43, 35, 27,
+    19, 11, 3, 60, 52, 44, 36,  # <-- C0 (first 28 bits)
+
+    63, 55, 47, 39, 31, 23, 15,
+    7, 62, 54, 46, 38, 30, 22,
+    14, 6, 61, 53, 45, 37, 29,
+    21, 13, 5, 28, 20, 12, 4    # <-- D0 (second 28 bits)
+]
+
+# PC-2: Permuted Choice 2 (selects 48 bits from C and D combined after shifts)
+# Modified to show 24 bits from C, 24 bits from D explicitly
+PC2_C = [13, 16, 10, 23, 0]()_
