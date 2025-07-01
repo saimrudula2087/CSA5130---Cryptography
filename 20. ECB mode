@@ -1,0 +1,76 @@
+from Crypto.Cipher import AES
+from Crypto.Random import get_random_bytes
+from Crypto.Util.Padding import pad, unpad
+import copy
+
+BLOCK_SIZE = 16  # AES block size
+
+def encrypt_ecb(plaintext, key):
+    cipher = AES.new(key, AES.MODE_ECB)
+    return cipher.encrypt(pad(plaintext, BLOCK_SIZE))
+
+def decrypt_ecb(ciphertext, key):
+    cipher = AES.new(key, AES.MODE_ECB)
+    return unpad(cipher.decrypt(ciphertext), BLOCK_SIZE)
+
+def encrypt_cbc(plaintext, key, iv):
+    cipher = AES.new(key, AES.MODE_CBC, iv)
+    return cipher.encrypt(pad(plaintext, BLOCK_SIZE))
+
+def decrypt_cbc(ciphertext, key, iv):
+    cipher = AES.new(key, AES.MODE_CBC, iv)
+    return unpad(cipher.decrypt(ciphertext), BLOCK_SIZE)
+
+# Simulate error in ciphertext
+def corrupt_block(ciphertext, block_index):
+    corrupted = bytearray(ciphertext)
+    corrupted[block_index * BLOCK_SIZE] ^= 0xFF  # Flip one bit
+    return bytes(corrupted)
+
+# Simulate error in plaintext
+def corrupt_plaintext(plaintext, byte_index):
+    corrupted = bytearray(plaintext)
+    corrupted[byte_index] ^= 0xFF
+    return bytes(corrupted)
+
+# Main demo
+def main():
+    key = get_random_bytes(16)
+    iv = get_random_bytes(16)
+    original_plaintext = b'This is block one.' + b'Block two is here' + b'Block three end!'  # 48 bytes
+
+    print("Original Plaintext:", original_plaintext)
+
+    # --- ECB Encryption ---
+    ciphertext_ecb = encrypt_ecb(original_plaintext, key)
+
+    # Introduce error in 1st ciphertext block (simulate transmission error)
+    corrupted_ecb = corrupt_block(ciphertext_ecb, 0)
+
+    try:
+        decrypted_ecb = decrypt_ecb(corrupted_ecb, key)
+        print("\n[ECB] Decrypted after corruption:", decrypted_ecb)
+    except:
+        print("\n[ECB] Decryption failed due to corrupted block.")
+
+    # --- CBC Encryption ---
+    ciphertext_cbc = encrypt_cbc(original_plaintext, key, iv)
+
+    # Introduce error in 1st ciphertext block
+    corrupted_cbc = corrupt_block(ciphertext_cbc, 0)
+
+    try:
+        decrypted_cbc = decrypt_cbc(corrupted_cbc, key, iv)
+        print("\n[CBC] Decrypted after corruption:", decrypted_cbc)
+    except:
+        print("\n[CBC] Decryption failed due to corrupted block.")
+
+    # --- Part (b) — Corrupt P1 before encryption and observe ciphertext effect ---
+    corrupted_plain = corrupt_plaintext(original_plaintext, 0)  # Bit error in P1
+    new_cipher_cbc = encrypt_cbc(corrupted_plain, key, iv)
+
+    print("\nCBC Ciphertext with bit error in P1:")
+    for i in range(0, len(new_cipher_cbc), BLOCK_SIZE):
+        print(f"Block {i // BLOCK_SIZE + 1}: {new_cipher_cbc[i:i+BLOCK_SIZE].hex()}")
+
+main()
