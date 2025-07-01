@@ -1,0 +1,35 @@
+def text_to_numbers(text):
+    return [ord(c) - ord('a') for c in text.lower() if c.isalpha()]
+
+def numbers_to_text(numbers):
+    return ''.join([chr((n % 26) + ord('a')) for n in numbers])
+
+def encrypt_vigenere_otp(plaintext, key_stream):
+    plaintext_nums = text_to_numbers(plaintext)
+    ciphertext_nums = [(p + k) % 26 for p, k in zip(plaintext_nums, key_stream)]
+    return numbers_to_text(ciphertext_nums)
+
+def decrypt_vigenere_otp(ciphertext, key_stream):
+    ciphertext_nums = text_to_numbers(ciphertext)
+    plaintext_nums = [(c - k) % 26 for c, k in zip(ciphertext_nums, key_stream)]
+    return numbers_to_text(plaintext_nums)
+
+def derive_key_from_plain_and_cipher(plaintext, ciphertext):
+    plain_nums = text_to_numbers(plaintext)
+    cipher_nums = text_to_numbers(ciphertext)
+    return [(c - p) % 26 for p, c in zip(plain_nums, cipher_nums)]
+
+# Part (a) - Encrypt 'send more money' with key stream
+plaintext_a = "send more money"
+key_stream_a = [9, 0, 1, 7, 23, 15, 21, 14, 11, 11, 2, 8, 9]
+
+ciphertext_a = encrypt_vigenere_otp(plaintext_a, key_stream_a)
+print("Part (a) Ciphertext:", ciphertext_a)
+
+# Part (b) - Given ciphertext from (a), find key so that it decrypts to 'cash not needed'
+desired_plaintext_b = "cash not needed"
+ciphertext_b = ciphertext_a  # same ciphertext as from part (a)
+
+# Derive the key that would decrypt ciphertext to 'cash not needed'
+key_stream_b = derive_key_from_plain_and_cipher(desired_plaintext_b, ciphertext_b)
+print("Part (b) Required Key Stream:", key_stream_b)
