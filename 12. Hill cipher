@@ -1,0 +1,69 @@
+import numpy as np
+
+# --- Helper Functions ---
+
+def clean_text(text):
+    text = text.lower().replace(" ", "").replace(".", "")
+    return ''.join([c for c in text if c.isalpha()])
+
+def text_to_numbers(text):
+    return [ord(c) - ord('a') for c in text]
+
+def numbers_to_text(nums):
+    return ''.join([chr(n % 26 + ord('a')) for n in nums])
+
+def chunk_pairs(numbers):
+    if len(numbers) % 2 != 0:
+        numbers.append(23)  # Add 'x' = 23 if length is odd
+    return [(numbers[i], numbers[i+1]) for i in range(0, len(numbers), 2)]
+
+# --- Matrix Operations ---
+
+def mod_inverse_matrix_2x2(matrix, modulus):
+    det = int(round(np.linalg.det(matrix)))
+    det_inv = pow(det % modulus, -1, modulus)  # modular inverse
+
+    # Inverse matrix formula for 2x2
+    inv_matrix = np.array([[matrix[1][1], -matrix[0][1]],
+                           [-matrix[1][0], matrix[0][0]]])
+    inv_matrix = (det_inv * inv_matrix) % modulus
+    return inv_matrix
+
+def hill_encrypt(plaintext, key_matrix):
+    clean = clean_text(plaintext)
+    numbers = text_to_numbers(clean)
+    pairs = chunk_pairs(numbers)
+
+    ciphertext = []
+    for a, b in pairs:
+        vec = np.array([[a], [b]])
+        enc = np.dot(key_matrix, vec) % 26
+        ciphertext.extend(enc.flatten())
+    return numbers_to_text(ciphertext)
+
+def hill_decrypt(ciphertext, key_matrix):
+    numbers = text_to_numbers(ciphertext)
+    pairs = chunk_pairs(numbers)
+
+    key_inv = mod_inverse_matrix_2x2(key_matrix, 26)
+
+    plaintext = []
+    for a, b in pairs:
+        vec = np.array([[a], [b]])
+        dec = np.dot(key_inv, vec) % 26
+        plaintext.extend(dec.flatten())
+    return numbers_to_text(plaintext)
+
+# --- Key Matrix ---
+key_matrix = np.array([[9, 4], [5, 7]])
+
+# --- Message ---
+message = "meet me at the usual place at ten rather than eight oclock"
+
+# --- Encrypt ---
+cipher = hill_encrypt(message, key_matrix)
+print("Encrypted Text:", cipher)
+
+# --- Decrypt ---
+decrypted = hill_decrypt(cipher, key_matrix)
+print("Decrypted Text:", decrypted)
