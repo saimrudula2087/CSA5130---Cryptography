@@ -1,0 +1,27 @@
+from Crypto.Cipher import DES, DES3
+from Crypto.Random import get_random_bytes
+
+def compare_des_3des():
+    key_des = get_random_bytes(8)
+    key_3des = DES3.adjust_key_parity(get_random_bytes(24))
+    iv = get_random_bytes(8)
+    data = b"Sensitive CBC test block!"
+
+    # DES Encryption
+    cipher_des = DES.new(key_des, DES.MODE_CBC, iv)
+    padded = data + b' ' * (8 - len(data) % 8)
+    enc_des = cipher_des.encrypt(padded)
+
+    # 3DES Encryption
+    cipher_3des = DES3.new(key_3des, DES3.MODE_CBC, iv)
+    enc_3des = cipher_3des.encrypt(padded)
+
+    print("DES ciphertext:", enc_des.hex())
+    print("3DES ciphertext:", enc_3des.hex())
+
+    print("\nRecommendation:")
+    print("🔐 3DES is significantly stronger than DES (effectively 112-bit key strength vs. DES's 56-bit).")
+    print("⚠️ DES is insecure by modern standards and can be brute-forced.")
+    print("✅ Use 3DES only if AES is not available. If AES is available, use AES-CBC instead.")
+
+compare_des_3des()
