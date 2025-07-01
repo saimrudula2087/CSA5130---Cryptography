@@ -1,0 +1,38 @@
+import numpy as np
+
+# Helper functions
+def text_to_numbers(text):
+    return [ord(c) - ord('A') for c in text.upper() if c.isalpha()]
+
+def numbers_to_text(numbers):
+    return ''.join([chr(n % 26 + ord('A')) for n in numbers])
+
+def mod_inv_matrix(matrix, modulus):
+    det = int(round(np.linalg.det(matrix)))
+    det_inv = pow(det % modulus, -1, modulus)
+    matrix_mod_inv = (
+        det_inv * np.round(det * np.linalg.inv(matrix)).astype(int) % modulus
+    )
+    return matrix_mod_inv
+
+# Hill Cipher Encryption
+def encrypt(plain_text, key_matrix):
+    n = key_matrix.shape[0]
+    plain_numbers = text_to_numbers(plain_text)
+    while len(plain_numbers) % n != 0:
+        plain_numbers.append(23)  # pad with 'X'
+
+    cipher_numbers = []
+    for i in range(0, len(plain_numbers), n):
+        chunk = np.array(plain_numbers[i:i + n])
+        enc_chunk = key_matrix.dot(chunk) % 26
+        cipher_numbers.extend(enc_chunk)
+    return numbers_to_text(cipher_numbers)
+
+# Simulate a known plaintext attack
+def known_plaintext_attack(plaintext, ciphertext, n):
+    print("\n[ATTACK] Recovering key matrix using known plaintext-ciphertext pairs...")
+    p_nums = np.array(text_to_numbers(plaintext)).reshape(-1, n).T
+    c_nums = np.array(text_to_numbers(ciphertext)).reshape(-1, n).T
+    p_inv = mod_inv_matrix(p_nums, 26)
+    key_mat_
