@@ -1,0 +1,68 @@
+from Crypto.Cipher import AES
+from Crypto.Random import get_random_bytes
+
+BLOCK_SIZE = 16
+
+def pad_message(message):
+    # Add 0x80 (10000000) followed by 0x00 padding to reach next block
+    padding_len = BLOCK_SIZE - (len(message) % BLOCK_SIZE)
+    padding = bytes([0x80]) + bytes([0x00] * (padding_len - 1))
+    return message + padding
+
+def unpad_message(padded):
+    # Remove custom padding
+    if b'\x80' not in padded:
+        return padded
+    idx = padded.rfind(b'\x80')
+    return padded[:idx]
+
+def encrypt_ecb(plaintext, key):
+    cipher = AES.new(key, AES.MODE_ECB)
+    return cipher.encrypt(plaintext)
+
+def decrypt_ecb(ciphertext, key):
+    cipher = AES.new(key, AES.MODE_ECB)
+    return cipher.decrypt(ciphertext)
+
+def encrypt_cbc(plaintext, key, iv):
+    cipher = AES.new(key, AES.MODE_CBC, iv)
+    return cipher.encrypt(plaintext)
+
+def decrypt_cbc(ciphertext, key, iv):
+    cipher = AES.new(key, AES.MODE_CBC, iv)
+    return cipher.decrypt(ciphertext)
+
+def encrypt_cfb(plaintext, key, iv):
+    cipher = AES.new(key, AES.MODE_CFB, iv, segment_size=128)
+    return cipher.encrypt(plaintext)
+
+def decrypt_cfb(ciphertext, key, iv):
+    cipher = AES.new(key, AES.MODE_CFB, iv, segment_size=128)
+    return cipher.decrypt(ciphertext)
+
+# --- MAIN DEMO ---
+if __name__ == "__main__":
+    key = get_random_bytes(16)
+    iv = get_random_bytes(16)
+    message = b"SecretMsg123456"  # Exactly 16 bytes
+
+    print("Original message:", message)
+
+    # Pad it explicitly even though it's a full block
+    padded = pad_message(message)
+    print("Padded message:", padded)
+
+    # ECB
+    ct_ecb = encrypt_ecb(padded, key)
+    pt_ecb = unpad_message(decrypt_ecb(ct_ecb, key))
+    print("\nECB Decrypted:", pt_ecb)
+
+    # CBC
+    ct_cbc = encrypt_cbc(padded, key, iv)
+    pt_cbc = unpad_message(decrypt_cbc(ct_cbc, key, iv))
+    print("CBC Decrypted:", pt_cbc)
+
+    # CFB
+    ct_cfb = encrypt_cfb(padded, key, iv)
+    pt_cfb = unpad_message(decrypt_cfb(ct_cfb, key, iv))
+    print("CFB Decrypted:", pt_cfb)
