@@ -1,0 +1,22 @@
+def sha3_diffusion():
+    lanes = [0] * 25  # assume 5×5 lanes
+
+    # Assume first message block P0 fills lanes partially
+    for i in range(25):
+        if i < 5:
+            lanes[i] = 1  # at least one non-zero bit
+
+    rounds = 0
+    while 0 in lanes:
+        rounds += 1
+        for i in range(25):
+            if lanes[i] != 0:
+                # Spread to neighbors (toy diffusion step)
+                if i+1 < 25: lanes[i+1] = 1
+                if i-1 >= 0: lanes[i-1] = 1
+                if i+5 < 25: lanes[i+5] = 1
+                if i-5 >= 0: lanes[i-5] = 1
+
+    print("Approximate rounds to fully fill:", rounds)
+
+sha3_diffusion()
