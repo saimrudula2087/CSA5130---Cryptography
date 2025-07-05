@@ -1,0 +1,46 @@
+import math
+
+def exploit_common_factor(n, plaintext_block):
+    # Check if plaintext_block shares a factor with n
+    g = math.gcd(n, plaintext_block)
+    if g != 1 and g != n:
+        p = g
+        q = n // g
+        print(f"Found factors of n: p = {p}, q = {q}")
+        return p, q
+    else:
+        print("No useful factor found (plaintext block is coprime with n).")
+        return None, None
+
+# Example values
+n = 3599  # suppose n = 59 * 61
+e = 31    # public key (not used directly here)
+
+# Suppose someone tells us plaintext_block = 177
+plaintext_block = 177
+
+# Try to exploit
+p, q = exploit_common_factor(n, plaintext_block)
+
+# If successful, we can reconstruct private key
+if p and q:
+    phi = (p - 1) * (q - 1)
+
+    # Extended Euclidean Algorithm to find modular inverse
+    def mod_inverse(e, phi):
+        def egcd(a, b):
+            if a == 0:
+                return b, 0, 1
+            g, y, x = egcd(b % a, a)
+            return g, x - (b // a) * y, y
+
+        g, x, _ = egcd(e, phi)
+        if g != 1:
+            raise Exception("Modular inverse does not exist.")
+        else:
+            return x % phi
+
+    d = mod_inverse(e, phi)
+    print(f"Private key found: d = {d}")
+else:
+    print("Could not factor n from plaintext block.")
