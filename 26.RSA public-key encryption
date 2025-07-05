@@ -1,0 +1,62 @@
+import math
+
+# Extended Euclidean Algorithm to find modular inverse
+def mod_inverse(e, phi):
+    def egcd(a, b):
+        if a == 0:
+            return b, 0, 1
+        g, y, x = egcd(b % a, a)
+        return g, x - (b // a) * y, y
+
+    g, x, _ = egcd(e, phi)
+    if g != 1:
+        raise Exception("No modular inverse exists")
+    return x % phi
+
+# Simulate Bob's original RSA setup
+p = 61
+q = 53
+n = p * q            # n = 3233
+phi = (p - 1) * (q - 1)  # φ(n) = 3120
+
+e = 17
+d = mod_inverse(e, phi)  # d = 2753
+
+print(f"Bob's original keys:")
+print(f"Public key (e, n): ({e}, {n})")
+print(f"Private key d: {d}")
+
+# Suppose Bob leaks his private key d
+# Now attacker knows e, d, n and can recover φ(n) from e*d ≡ 1 mod φ(n)
+# So attacker brute-forces φ(n)
+
+# Attacker code
+def find_phi_from_e_d(e, d, n):
+    k = 1
+    while True:
+        phi_candidate = (e * d - 1) // k
+        if (e * d - 1) % k == 0:
+            # Try factoring n now that we have φ(n)
+            for p_candidate in range(2, int(math.sqrt(n)) + 1):
+                if n % p_candidate == 0:
+                    q_candidate = n // p_candidate
+                    if (p_candidate - 1)*(q_candidate - 1) == phi_candidate:
+                        return phi_candidate, p_candidate, q_candidate
+        k += 1
+        if k > 100000:  # safeguard
+            break
+    return None, None, None
+
+# Attacker discovers:
+recovered_phi, recovered_p, recovered_q = find_phi_from_e_d(e, d, n)
+print(f"\nAttacker recovers φ(n) = {recovered_phi}, p = {recovered_p}, q = {recovered_q}")
+
+# Now Bob tries to create a new key with same n
+e2 = 7
+d2 = mod_inverse(e2, recovered_phi)
+
+print(f"\nBob's NEW keys with same n:")
+print(f"New public key: (e2 = {e2}, n = {n})")
+print(f"New private key: d2 = {d2}")
+
+print("\n⚠️ Anyone who recovered φ(n) can recompute any future key pairs Bob uses with this n.")
