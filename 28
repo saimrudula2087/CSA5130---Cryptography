@@ -1,0 +1,27 @@
+def diffie_hellman_correct():
+    q = 353
+    a = 3
+    xA = 97
+    xB = 233
+
+    yA = pow(a, xA, q)
+    yB = pow(a, xB, q)
+
+    # Shared key
+    kA = pow(yB, xA, q)
+    kB = pow(yA, xB, q)
+    print("Correct shared key:", kA)
+
+def diffie_hellman_incorrect():
+    a = 3
+    xA = 97
+    xB = 233
+
+    # Wrong exchange: xA * a, xB * a (incorrect idea)
+    yA = xA * a
+    yB = xB * a
+    print("Incorrect exchange values:", yA, yB)
+    print("This leaks xA directly; attacker can compute xA easily.")
+
+diffie_hellman_correct()
+diffie_hellman_incorrect()
