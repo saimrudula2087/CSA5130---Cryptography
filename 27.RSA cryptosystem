@@ -1,0 +1,43 @@
+def rsa_encrypt(m, e, n):
+    return pow(m, e, n)
+
+def rsa_decrypt(c, d, n):
+    return pow(c, d, n)
+
+def build_dictionary(e, n):
+    # Build a dictionary of all possible letter encryptions
+    enc_dict = {}
+    for m in range(26):  # only 0 to 25 (A to Z)
+        c = rsa_encrypt(m, e, n)
+        enc_dict[c] = m
+    return enc_dict
+
+def number_to_char(n):
+    return chr(n + ord('A'))
+
+def simulate_attack(ciphertext_list, e, n):
+    # Build lookup table
+    dictionary = build_dictionary(e, n)
+    
+    decrypted_message = ''
+    for c in ciphertext_list:
+        if c in dictionary:
+            decrypted_message += number_to_char(dictionary[c])
+        else:
+            decrypted_message += '?'
+    return decrypted_message
+
+# RSA Key (small for demo; in reality, n would be large)
+e = 17
+n = 3233  # n = 61 * 53, just for demonstration
+
+# Simulate Alice encrypting "HELLO"
+plaintext = "HELLO"
+plaintext_numbers = [ord(c) - ord('A') for c in plaintext]
+ciphertext = [rsa_encrypt(m, e, n) for m in plaintext_numbers]
+
+print("Encrypted ciphertext blocks:", ciphertext)
+
+# Attacker simulates dictionary attack
+decrypted = simulate_attack(ciphertext, e, n)
+print("Decrypted via attack:", decrypted)
