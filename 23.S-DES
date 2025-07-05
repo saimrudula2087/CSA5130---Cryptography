@@ -1,0 +1,112 @@
+# --- Helper functions ---
+
+# Permutation
+def permute(bits, pattern):
+    return ''.join(bits[i] for i in pattern)
+
+# Left shift
+def left_shift(bits, n):
+    return bits[n:] + bits[:n]
+
+# S-Boxes
+S0 = [[1, 0, 3, 2],
+      [3, 2, 1, 0],
+      [0, 2, 1, 3],
+      [3, 1, 3, 2]]
+
+S1 = [[0, 1, 2, 3],
+      [2, 0, 1, 3],
+      [3, 0, 1, 0],
+      [2, 1, 0, 3]]
+
+# Key generation from 10-bit key
+def generate_keys(key):
+    P10 = [2, 4, 1, 6, 3, 9, 0, 8, 7, 5]
+    P8  = [5, 2, 6, 3, 7, 4, 9, 8]
+    key_p10 = permute(key, P10)
+    left = key_p10[:5]
+    right = key_p10[5:]
+    
+    # Key1
+    left1 = left_shift(left, 1)
+    right1 = left_shift(right, 1)
+    key1 = permute(left1 + right1, P8)
+    
+    # Key2
+    left2 = left_shift(left1, 2)
+    right2 = left_shift(right1, 2)
+    key2 = permute(left2 + right2, P8)
+    
+    return key1, key2
+
+# Fk function
+def fk(bits, key):
+    EP = [3, 0, 1, 2, 1, 2, 3, 0]
+    P4 = [1, 3, 2, 0]
+    left = bits[:4]
+    right = bits[4:]
+    temp = permute(right, EP)
+    temp = xor(temp, key)
+    
+    left_half = temp[:4]
+    right_half = temp[4:]
+    
+    row1 = int(left_half[0] + left_half[3], 2)
+    col1 = int(left_half[1] + left_half[2], 2)
+    row2 = int(right_half[0] + right_half[3], 2)
+    col2 = int(right_half[1] + right_half[2], 2)
+    
+    s0_val = format(S0[row1][col1], '02b')
+    s1_val = format(S1[row2][col2], '02b')
+    
+    return xor(left, permute(s0_val + s1_val, P4)) + right
+
+# Initial and inverse permutations
+IP = [1, 5, 2, 0, 3, 7, 4, 6]
+IP_inv = [3, 0, 2, 4, 6, 1, 7, 5]
+SW = [4, 5, 6, 7, 0, 1, 2, 3]
+
+# XOR function
+def xor(a, b):
+    return ''.join('0' if i == j else '1' for i, j in zip(a, b))
+
+# S-DES encryption (single 8-bit block)
+def sdes_encrypt(plaintext, key1, key2):
+    temp = permute(plaintext, IP)
+    temp = fk(temp, key1)
+    temp = permute(temp, SW)
+    temp = fk(temp, key2)
+    return permute(temp, IP_inv)
+
+# Encrypt/Decrypt in Counter Mode
+def sdes_ctr_mode(data_blocks, key, counter_start='00000000'):
+    key1, key2 = generate_keys(key)
+    result = []
+    counter = int(counter_start, 2)
+    
+    for block in data_blocks:
+        ctr_bin = format(counter, '08b')
+        keystream = sdes_encrypt(ctr_bin, key1, key2)
+        result_block = xor(block, keystream)
+        result.append(result_block)
+        counter += 1
+    
+    return result
+
+# Convert binary string to readable groups
+def pretty_print_binary_list(lst):
+    return ' '.join(lst)
+
+# --- Test Case ---
+
+# Binary key and plaintext
+key_10bit = '0111111101'  # 10-bit key
+plaintext_blocks = ['00000001', '00000010', '00000100']  # 3 blocks of 8-bit binary
+
+# Encrypt
+cipher_blocks = sdes_ctr_mode(plaintext_blocks, key_10bit)
+print("Encrypted:", pretty_print_binary_list(cipher_blocks))
+
+# Decrypt (same process in CTR mode)
+decrypted_blocks = sdes_ctr_mode(cipher_blocks, key_10bit)
+print("Decrypted:", pretty_print_binary_list(decrypted_blocks))
