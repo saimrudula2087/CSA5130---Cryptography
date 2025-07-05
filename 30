@@ -1,0 +1,19 @@
+def xor_bytes(a, b):
+    return bytes(x ^ y for x, y in zip(a, b))
+
+from Crypto.Cipher import AES
+
+def cbc_mac_forgery():
+    key = b'1234567890abcdef'
+    X = b"HELLO1234567890"  # 16 bytes
+    cipher = AES.new(key, AES.MODE_CBC, iv=bytes(16))
+    T = cipher.encrypt(X)[-16:]
+    print("MAC for X (T):", T.hex())
+
+    X_xor_T = xor_bytes(X, T)
+    print("New block X ⊕ T:", X_xor_T.hex())
+
+    # In actual forgery, attacker uses X || (X ⊕ T) and knows final MAC immediately
+    print("Attacker can forge valid MAC for two-block message without knowing key.")
+
+cbc_mac_forgery()
