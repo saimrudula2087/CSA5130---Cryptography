@@ -1,0 +1,75 @@
+from collections import Counter
+import itertools
+import string
+
+# English letters in order of frequency
+ENGLISH_FREQ_ORDER = "ETAOINSHRDLCUMWFGYPBVKJXQZ"
+
+# Clean and normalize input text
+def clean_text(text):
+    return ''.join(filter(str.isalpha, text.upper()))
+
+# Get frequency mapping of characters
+def get_frequency_order(text):
+    counter = Counter(clean_text(text))
+    return ''.join([item[0] for item in counter.most_common()])
+
+# Build mapping based on guess
+def build_mapping(cipher_order, guess_order):
+    return dict(zip(cipher_order, guess_order))
+
+# Apply letter substitution using mapping
+def substitute(text, mapping):
+    return ''.join(mapping.get(c, c) if c in string.ascii_uppercase else c for c in text.upper())
+
+# Scoring function based on common English trigrams or letter order
+def score(text):
+    score = 0
+    common_words = ["THE", "AND", "TO", "OF", "IN", "IS", "IT"]
+    for word in common_words:
+        score += text.count(word)
+    return score
+
+# Attack function: returns top-N likely plaintexts
+def monoalphabetic_attack(ciphertext, top_n=10):
+    cleaned = clean_text(ciphertext)
+    cipher_order = get_frequency_order(cleaned)
+    top_cipher_letters = cipher_order[:6]
+    
+    # Generate permutations of top English letters
+    guesses = []
+    for guess in itertools.permutations(ENGLISH_FREQ_ORDER[:6]):
+        mapping = build_mapping(top_cipher_letters, guess)
+        full_mapping = mapping.copy()
+
+        # Fill in the rest of the mapping with direct freq match
+        for c, e in zip(cipher_order[6:], ENGLISH_FREQ_ORDER[6:]):
+            full_mapping[c] = full_mapping.get(c, e)
+
+        plaintext = substitute(ciphertext, full_mapping)
+        guesses.append((score(plaintext), plaintext))
+
+    # Sort by score descending
+    guesses.sort(reverse=True)
+
+    # Remove duplicates and return top_n
+    seen = set()
+    result = []
+    for s, pt in guesses:
+        if pt not in seen:
+            result.append(pt)
+            seen.add(pt)
+        if len(result) == top_n:
+            break
+    return result
+
+# Main user interface
+if __name__ == "__main__":
+    ciphertext = input("Enter ciphertext: ")
+    top_n = int(input("Enter number of top guesses: "))
+
+    results = monoalphabetic_attack(ciphertext, top_n)
+
+    print(f"\nTop {top_n} guesses:\n")
+    for i, guess in enumerate(results, 1):
+        print(f"{i}. {guess}")
