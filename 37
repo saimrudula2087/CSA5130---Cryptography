@@ -1,0 +1,62 @@
+from collections import Counter
+import itertools
+import string
+
+# English letter frequency (relative order)
+ENGLISH_FREQ_ORDER = "ETAOINSHRDLCUMWFGYPBVKJXQZ"
+
+def clean_text(text):
+    return ''.join(filter(str.isalpha, text.upper()))
+
+def letter_frequency(text):
+    return Counter(clean_text(text))
+
+def substitution_mapping(cipher_freq):
+    cipher_order = ''.join([item[0] for item in cipher_freq.most_common()])
+    mapping = {}
+    for c, p in zip(cipher_order, ENGLISH_FREQ_ORDER):
+        mapping[c] = p
+    return mapping
+
+def apply_mapping(text, mapping):
+    return ''.join([mapping.get(c, c) if c in string.ascii_uppercase else c for c in text.upper()])
+
+def frequency_attack(ciphertext, top_n=5):
+    cipher_freq = letter_frequency(ciphertext)
+    best_guess_mapping = substitution_mapping(cipher_freq)
+    best_plaintext = apply_mapping(ciphertext, best_guess_mapping)
+
+    # Generate permutations of top few frequent letters
+    top_letters = [item[0] for item in cipher_freq.most_common(6)]
+    likely_orders = list(itertools.permutations(ENGLISH_FREQ_ORDER[:6]))
+
+    outputs = []
+    for guess_order in likely_orders[:top_n * 10]:  # Limit guesses to keep fast
+        test_mapping = best_guess_mapping.copy()
+        for i in range(len(top_letters)):
+            test_mapping[top_letters[i]] = guess_order[i]
+        result = apply_mapping(ciphertext, test_mapping)
+        outputs.append(result)
+
+    # Return top_n most unique guesses
+    seen = set()
+    top_outputs = []
+    for text in outputs:
+        if text not in seen:
+            top_outputs.append(text)
+            seen.add(text)
+        if len(top_outputs) >= top_n:
+            break
+
+    return top_outputs
+
+# Example usage
+if __name__ == "__main__":
+    ciphertext = input("Enter ciphertext: ")
+    top_n = int(input("Enter number of top guesses to display: "))
+
+    results = frequency_attack(ciphertext, top_n)
+
+    print("\nTop", top_n, "likely plaintext guesses:\n")
+    for i, result in enumerate(results, 1):
+        print(f"{i}. {result}")
