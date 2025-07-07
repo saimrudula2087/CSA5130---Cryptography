@@ -1,0 +1,108 @@
+#include <stdio.h>
+#include <string.h>
+#include <stdint.h>
+
+#define BLOCK_SIZE 8 // 64 bits
+
+// Simple permutation function (mock-up for illustration)
+void initial_permutation(uint8_t* block) {
+    // Swap bytes 0-7 ↔ 7-0 as a toy example
+    for (int i = 0; i < 4; i++) {
+        uint8_t temp = block[i];
+        block[i] = block[7 - i];
+        block[7 - i] = temp;
+    }
+}
+
+void final_permutation(uint8_t* block) {
+    // Reverse of initial permutation
+    initial_permutation(block);
+}
+
+// Toy Feistel function for demo
+uint32_t feistel(uint32_t half, uint64_t subkey) {
+    // XOR with subkey and rotate
+    return ((half ^ (uint32_t)(subkey & 0xFFFFFFFF)) << 1) | ((half ^ (uint32_t)(subkey & 0xFFFFFFFF)) >> 31);
+}
+
+// Key schedule - dummy subkeys (same repeated key for simplicity)
+void generate_subkeys(uint64_t key, uint64_t subkeys[16]) {
+    for (int i = 0; i < 16; i++) {
+        subkeys[i] = key; // In real DES, each round key is different
+    }
+}
+
+// Encrypt a single 64-bit block
+void des_encrypt_block(uint8_t* plaintext, uint8_t* ciphertext, uint64_t key) {
+    uint64_t subkeys[16];
+    generate_subkeys(key, subkeys);
+
+    uint64_t block = 0;
+    memcpy(&block, plaintext, BLOCK_SIZE);
+
+    initial_permutation((uint8_t*)&block);
+
+    uint32_t left = (block >> 32) & 0xFFFFFFFF;
+    uint32_t right = block & 0xFFFFFFFF;
+
+    for (int i = 0; i < 16; i++) {
+        uint32_t temp = right;
+        right = left ^ feistel(right, subkeys[i]);
+        left = temp;
+    }
+
+    uint64_t combined = ((uint64_t)right << 32) | left;
+    final_permutation((uint8_t*)&combined);
+    memcpy(ciphertext, &combined, BLOCK_SIZE);
+}
+
+// Decrypt a single 64-bit block
+void des_decrypt_block(uint8_t* ciphertext, uint8_t* plaintext, uint64_t key) {
+    uint64_t subkeys[16];
+    generate_subkeys(key, subkeys);
+
+    uint64_t block = 0;
+    memcpy(&block, ciphertext, BLOCK_SIZE);
+
+    initial_permutation((uint8_t*)&block);
+
+    uint32_t left = (block >> 32) & 0xFFFFFFFF;
+    uint32_t right = block & 0xFFFFFFFF;
+
+    for (int i = 15; i >= 0; i--) {
+        uint32_t temp = left;
+        left = right ^ feistel(left, subkeys[i]);
+        right = temp;
+    }
+
+    uint64_t combined = ((uint64_t)left << 32) | right;
+    final_permutation((uint8_t*)&combined);
+    memcpy(plaintext, &combined, BLOCK_SIZE);
+}
+
+void print_block(uint8_t* block) {
+    for (int i = 0; i < BLOCK_SIZE; i++) {
+        printf("%02X ", block[i]);
+    }
+    printf("\n");
+}
+
+int main() {
+    uint8_t plaintext[BLOCK_SIZE] = "DESdemo";
+    uint8_t ciphertext[BLOCK_SIZE];
+    uint8_t decrypted[BLOCK_SIZE];
+    uint64_t key = 0x133457799BBCDFF1; // 56-bit key in 64-bit format
+
+    printf("Original Plaintext: ");
+    print_block(plaintext);
+
+    des_encrypt_block(plaintext, ciphertext, key);
+    printf("Encrypted Ciphertext: ");
+    print_block(ciphertext);
+
+    des_decrypt_block(ciphertext, decrypted, key);
+    printf("Decrypted Plaintext: ");
+    print_block(decrypted);
+
+    return 0;
+}
