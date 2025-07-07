@@ -1,0 +1,67 @@
+from Crypto.Cipher import AES
+from Crypto.Random import get_random_bytes
+import binascii
+
+BLOCK_SIZE = 16  # 128 bits for AES
+
+def custom_pad(data):
+    pad_len = BLOCK_SIZE - (len(data) % BLOCK_SIZE)
+    return data + b'\x80' + b'\x00' * (pad_len - 1)
+
+def custom_unpad(padded):
+    if b'\x80' not in padded:
+        return padded  # No padding found
+    index = padded.rfind(b'\x80')
+    return padded[:index]
+
+def encrypt_ecb(key, plaintext):
+    cipher = AES.new(key, AES.MODE_ECB)
+    padded = custom_pad(plaintext)
+    ciphertext = cipher.encrypt(padded)
+    return ciphertext
+
+def decrypt_ecb(key, ciphertext):
+    cipher = AES.new(key, AES.MODE_ECB)
+    decrypted = cipher.decrypt(ciphertext)
+    return custom_unpad(decrypted)
+
+def encrypt_cbc(key, plaintext, iv):
+    cipher = AES.new(key, AES.MODE_CBC, iv)
+    padded = custom_pad(plaintext)
+    ciphertext = cipher.encrypt(padded)
+    return ciphertext
+
+def decrypt_cbc(key, ciphertext, iv):
+    cipher = AES.new(key, AES.MODE_CBC, iv)
+    decrypted = cipher.decrypt(ciphertext)
+    return custom_unpad(decrypted)
+
+def encrypt_cfb(key, plaintext, iv):
+    cipher = AES.new(key, AES.MODE_CFB, iv, segment_size=128)
+    return cipher.encrypt(plaintext)
+
+def decrypt_cfb(key, ciphertext, iv):
+    cipher = AES.new(key, AES.MODE_CFB, iv, segment_size=128)
+    return cipher.decrypt(ciphertext)
+
+# Example usage
+key = get_random_bytes(16)
+iv = get_random_bytes(16)
+plaintext = b"HELLO_AES_MODE"
+
+print("\nOriginal Plaintext:", plaintext)
+
+# ECB
+ecb_cipher = encrypt_ecb(key, plaintext)
+print("ECB Encrypted:", binascii.hexlify(ecb_cipher))
+print("ECB Decrypted:", decrypt_ecb(key, ecb_cipher))
+
+# CBC
+cbc_cipher = encrypt_cbc(key, plaintext, iv)
+print("CBC Encrypted:", binascii.hexlify(cbc_cipher))
+print("CBC Decrypted:", decrypt_cbc(key, cbc_cipher, iv))
+
+# CFB (does not require padding)
+cfb_cipher = encrypt_cfb(key, plaintext, iv)
+print("CFB Encrypted:", binascii.hexlify(cfb_cipher))
+print("CFB Decrypted:", decrypt_cfb(key, cfb_cipher, iv))
