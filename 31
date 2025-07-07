@@ -1,0 +1,42 @@
+from Crypto.Cipher import AES
+
+def left_shift_one_bit(input_bytes):
+    """Performs bitwise left shift by 1 on a byte array."""
+    output = bytearray(16)
+    carry = 0
+    for i in reversed(range(16)):
+        byte = input_bytes[i]
+        output[i] = ((byte << 1) & 0xFF) | carry
+        carry = (byte & 0x80) >> 7
+    return bytes(output)
+
+def xor_bytes(a, b):
+    return bytes([x ^ y for x, y in zip(a, b)])
+
+def generate_cmac_subkeys(key):
+    cipher = AES.new(key, AES.MODE_ECB)
+    zero_block = b'\x00' * 16
+    L = cipher.encrypt(zero_block)
+
+    # Constant for 128-bit block size
+    Rb = bytes.fromhex('00000000000000000000000000000087')
+
+    # Generate K1
+    if (L[0] & 0x80):  # if MSB is 1
+        K1 = xor_bytes(left_shift_one_bit(L), Rb)
+    else:
+        K1 = left_shift_one_bit(L)
+
+    # Generate K2
+    if (K1[0] & 0x80):
+        K2 = xor_bytes(left_shift_one_bit(K1), Rb)
+    else:
+        K2 = left_shift_one_bit(K1)
+
+    return K1, K2
+
+# Example usage
+key = b'\x2b\x7e\x15\x16\x28\xae\xd2\xa6\xab\xf7\xcf\xef\x8d\xab\x04\x49'  # AES 128-bit key
+K1, K2 = generate_cmac_subkeys(key)
+print("K1:", K1.hex())
+print("K2:", K2.hex())
