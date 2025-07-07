@@ -1,0 +1,46 @@
+from collections import Counter
+import string
+
+# English letter frequency based on usage
+ENGLISH_FREQ_ORDER = 'ETAOINSHRDLCUMWFGYPBVKJXQZ'
+
+def shift_text(ciphertext, key):
+    shifted = ''
+    for char in ciphertext.upper():
+        if char in string.ascii_uppercase:
+            shifted += chr(((ord(char) - 65 - key) % 26) + 65)
+        else:
+            shifted += char  # Preserve punctuation/space
+    return shifted
+
+def score_text(text):
+    freq = Counter([c for c in text if c in string.ascii_uppercase])
+    sorted_letters = ''.join([item[0] for item in freq.most_common()])
+    
+    # Score: how many top letters match English frequency
+    score = 0
+    for i in range(min(len(sorted_letters), 6)):
+        if sorted_letters[i] in ENGLISH_FREQ_ORDER[:6]:
+            score += 1
+    return score
+
+def frequency_attack_additive(ciphertext, top_n=5):
+    results = []
+    for key in range(26):
+        candidate = shift_text(ciphertext, key)
+        score = score_text(candidate)
+        results.append((score, key, candidate))
+
+    results.sort(reverse=True)  # Highest scoring first
+    return results[:top_n]
+
+# Example usage
+if __name__ == "__main__":
+    ciphertext = input("Enter the ciphertext: ")
+    top_n = int(input("Enter number of top guesses to display: "))
+
+    guesses = frequency_attack_additive(ciphertext, top_n)
+
+    print(f"\nTop {top_n} likely plaintext guesses:\n")
+    for i, (score, key, guess) in enumerate(guesses, 1):
+        print(f"{i}. Key = {key:2d} | Score = {score} | Plaintext: {guess}")
