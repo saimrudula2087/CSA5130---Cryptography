@@ -1,0 +1,115 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define MOD 26
+
+// Convert char to int (A=0...Z=25)
+int char_to_int(char c) {
+    return c - 'A';
+}
+
+// Convert int to char
+char int_to_char(int i) {
+    return i + 'A';
+}
+
+// Calculate modular inverse of a number under mod 26
+int mod_inverse(int a) {
+    a = a % MOD;
+    for (int x = 1; x < MOD; x++)
+        if ((a * x) % MOD == 1)
+            return x;
+    return -1;
+}
+
+// Multiply 2x2 matrix with 2x1 vector modulo 26
+void matrix_multiply(int key[2][2], int in[2], int out[2]) {
+    out[0] = (key[0][0]*in[0] + key[0][1]*in[1]) % MOD;
+    out[1] = (key[1][0]*in[0] + key[1][1]*in[1]) % MOD;
+}
+
+// Find inverse of 2x2 matrix modulo 26
+int inverse_key_matrix(int key[2][2], int inv[2][2]) {
+    int det = key[0][0]*key[1][1] - key[0][1]*key[1][0];
+    det = (det % MOD + MOD) % MOD;
+
+    int inv_det = mod_inverse(det);
+    if (inv_det == -1)
+        return 0; // No inverse exists
+
+    inv[0][0] =  key[1][1] * inv_det % MOD;
+    inv[0][1] = -key[0][1] * inv_det % MOD;
+    inv[1][0] = -key[1][0] * inv_det % MOD;
+    inv[1][1] =  key[0][0] * inv_det % MOD;
+
+    // Normalize to mod 26
+    for (int i = 0; i < 2; i++)
+        for (int j = 0; j < 2; j++)
+            inv[i][j] = (inv[i][j] + MOD) % MOD;
+
+    return 1;
+}
+
+void encrypt(char *plaintext, char *ciphertext, int key[2][2]) {
+    int block[2], result[2];
+
+    for (int i = 0; i < strlen(plaintext); i += 2) {
+        block[0] = char_to_int(plaintext[i]);
+        block[1] = char_to_int(plaintext[i+1]);
+
+        matrix_multiply(key, block, result);
+
+        ciphertext[i] = int_to_char(result[0]);
+        ciphertext[i+1] = int_to_char(result[1]);
+    }
+    ciphertext[strlen(plaintext)] = '\0';
+}
+
+void decrypt(char *ciphertext, char *plaintext, int key[2][2]) {
+    int inv_key[2][2];
+    if (!inverse_key_matrix(key, inv_key)) {
+        printf("Key matrix not invertible.\n");
+        exit(1);
+    }
+
+    int block[2], result[2];
+    for (int i = 0; i < strlen(ciphertext); i += 2) {
+        block[0] = char_to_int(ciphertext[i]);
+        block[1] = char_to_int(ciphertext[i+1]);
+
+        matrix_multiply(inv_key, block, result);
+
+        plaintext[i] = int_to_char(result[0]);
+        plaintext[i+1] = int_to_char(result[1]);
+    }
+    plaintext[strlen(ciphertext)] = '\0';
+}
+
+int main() {
+    // 2x2 Key Matrix (must be invertible mod 26)
+    int key[2][2] = {
+        {3, 3},
+        {2, 5}
+    };
+
+    char plaintext[100];
+    char ciphertext[100];
+    char decrypted[100];
+
+    printf("Enter plaintext (even length, uppercase letters only): ");
+    scanf("%s", plaintext);
+
+    // Pad if needed
+    if (strlen(plaintext) % 2 != 0) {
+        strcat(plaintext, "X");
+    }
+
+    encrypt(plaintext, ciphertext, key);
+    printf("Encrypted: %s\n", ciphertext);
+
+    decrypt(ciphertext, decrypted, key);
+    printf("Decrypted: %s\n", decrypted);
+
+    return 0;
+}
