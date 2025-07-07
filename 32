@@ -1,0 +1,80 @@
+#include <stdio.h>
+#include <string.h>
+#include <openssl/dsa.h>
+#include <openssl/rsa.h>
+#include <openssl/pem.h>
+#include <openssl/err.h>
+#include <openssl/sha.h>
+
+void handle_errors(const char* msg) {
+    fprintf(stderr, "%s\n", msg);
+    ERR_print_errors_fp(stderr);
+    exit(EXIT_FAILURE);
+}
+
+void print_signature(const unsigned char* sig, unsigned int len) {
+    for (unsigned int i = 0; i < len; i++)
+        printf("%02x", sig[i]);
+    printf("\n");
+}
+
+int main() {
+    OpenSSL_add_all_algorithms();
+    ERR_load_crypto_strings();
+
+    const char* message = "This is a sample message.";
+    unsigned char hash[SHA256_DIGEST_LENGTH];
+    SHA256((unsigned char*)message, strlen(message), hash);
+
+    // ---------- DSA Signature ----------
+    DSA* dsa = DSA_new();
+    if (!DSA_generate_parameters_ex(dsa, 1024, NULL, 0, NULL, NULL, NULL))
+        handle_errors("DSA parameter generation failed");
+    if (!DSA_generate_key(dsa))
+        handle_errors("DSA key generation failed");
+
+    unsigned char dsa_sig1[DSA_size(dsa)], dsa_sig2[DSA_size(dsa)];
+    unsigned int dsa_len1, dsa_len2;
+
+    // Sign twice using DSA
+    if (!DSA_sign(0, hash, SHA256_DIGEST_LENGTH, dsa_sig1, &dsa_len1, dsa))
+        handle_errors("DSA signing failed");
+    if (!DSA_sign(0, hash, SHA256_DIGEST_LENGTH, dsa_sig2, &dsa_len2, dsa))
+        handle_errors("DSA signing failed again");
+
+    printf("DSA Signature 1: ");
+    print_signature(dsa_sig1, dsa_len1);
+
+    printf("DSA Signature 2: ");
+    print_signature(dsa_sig2, dsa_len2);
+
+    // ---------- RSA Signature ----------
+    RSA* rsa = RSA_new();
+    BIGNUM* bn = BN_new();
+    BN_set_word(bn, RSA_F4);
+
+    if (!RSA_generate_key_ex(rsa, 2048, bn, NULL))
+        handle_errors("RSA key generation failed");
+
+    unsigned char rsa_sig1[256], rsa_sig2[256];
+    unsigned int rsa_len1, rsa_len2;
+
+    // RSA uses PKCS#1 v1.5 (deterministic unless using PSS)
+    if (!RSA_sign(NID_sha256, hash, SHA256_DIGEST_LENGTH, rsa_sig1, &rsa_len1, rsa))
+        handle_errors("RSA signing failed");
+    if (!RSA_sign(NID_sha256, hash, SHA256_DIGEST_LENGTH, rsa_sig2, &rsa_len2, rsa))
+        handle_errors("RSA signing failed again");
+
+    printf("RSA Signature 1: ");
+    print_signature(rsa_sig1, rsa_len1);
+
+    printf("RSA Signature 2: ");
+    print_signature(rsa_sig2, rsa_len2);
+
+    // ---------- Cleanup ----------
+    DSA_free(dsa);
+    RSA_free(rsa);
+    BN_free(bn);
+
+    return 0;
+}
